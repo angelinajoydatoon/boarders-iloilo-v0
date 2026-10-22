@@ -17,6 +17,20 @@
 --   * there is no general roles table, only admin_roles. Granting the guide role
 --     there could make a student an admin if is_admin() checks that table, so
 --     Part 1 adds a separate public.user_roles table instead.
+--
+-- Status lifecycle (the strings the student panel and the existing
+-- accept_student_guide_agreement / decline_student_guide_agreement RPCs use):
+--   'Pending Review'                -> written by the student form
+--   'Approved — Agreement Required' -> written by admin approval (em dash, U+2014).
+--                                      The student panel shows the agreement
+--                                      prompt for exactly this string.
+--   'Active Student Guide'          -> written by the existing accept RPC
+--   'Rejected'                      -> written by admin rejection
+-- The student_guide role is NOT granted on approval. It is granted by a trigger
+-- when the existing accept RPC moves the row from 'Approved — Agreement Required'
+-- to 'Active Student Guide', so guide access begins only after acceptance.
+-- This file never modifies the existing accept/decline functions, admin_roles
+-- or is_admin().
 -- =============================================================================
 
 
@@ -41,6 +55,36 @@ order by table_name, ordinal_position;
 -- 0c. Existing definition of public.is_admin(), to confirm it does not depend on
 --     anything the new function cannot satisfy.
 select pg_get_functiondef('public.is_admin()'::regprocedure);
+
+-- 0d. Definitions of the existing agreement functions. Confirm that:
+--       * accept checks status = 'Approved — Agreement Required' and writes
+--         'Active Student Guide'
+--       * decline accepts 'Approved — Agreement Required' and writes a status of
+--         your choice (the trigger below revokes the role if it ever leaves
+--         'Active Student Guide')
+--       * neither inserts into admin_roles
+--     Both are matched by name, so this works whatever their argument types are.
+select p.oid::regprocedure as signature, pg_get_functiondef(p.oid) as definition
+from pg_proc p
+join pg_namespace n on n.oid = p.pronamespace
+where n.nspname = 'public'
+  and p.proname in ('accept_student_guide_agreement', 'decline_student_guide_agreement');
+
+-- 0e. Existing triggers and RLS policies on the applications table. Check that
+--     students cannot update their own row's status directly; the role trigger
+--     below trusts status transitions on this table.
+select tgname, pg_get_triggerdef(oid) as definition
+from pg_trigger
+where tgrelid = 'public.student_guide_applications'::regclass
+  and not tgisinternal;
+
+select policyname, cmd, roles, qual, with_check
+from pg_policies
+where schemaname = 'public' and tablename = 'student_guide_applications';
+
+-- 0f. Distinct statuses currently stored, so the lifecycle strings above match
+--     real data exactly (watch for a hyphen instead of the em dash).
+select status, count(*) from public.student_guide_applications group by status order by 2 desc;
 
 
 -- =============================================================================
@@ -146,10 +190,11 @@ begin
     raise exception 'Application has no linked student account' using errcode = '23502';
   end if;
 
-  -- Follow the casing already used by the existing rows ('Pending Review').
-  v_new_status := case
-    when v_application.status = 'Pending Review' then initcap(v_decision)
-    else v_decision
+  -- Approval hands off to the existing agreement flow: the student panel shows
+  -- the agreement prompt only for this exact string (note the em dash).
+  v_new_status := case v_decision
+    when 'approved' then 'Approved — Agreement Required'
+    else 'Rejected'
   end;
 
   select email into v_admin_email from auth.users where id = v_admin_id;
@@ -163,12 +208,6 @@ begin
       updated_at = v_now
   where id = p_application_id;
 
-  if v_decision = 'approved' then
-    insert into public.user_roles (user_id, role, granted_by)
-    values (v_application.student_id, 'student_guide', v_admin_id)
-    on conflict (user_id, role) do nothing;
-  end if;
-
   insert into public.notifications (user_id, title, body, kind)
   values (
     v_application.student_id,
@@ -177,7 +216,7 @@ begin
       else 'Student Guide application not approved'
     end,
     case when v_decision = 'approved'
-      then 'Your Student Guide application was approved. You now have the Student Guide role.'
+      then 'Your Student Guide application was approved. Open the Student Guide tab in your account and accept the Student Guide Agreement to activate your role.'
       else 'Your Student Guide application was not approved. Reason: ' || v_reason
     end,
     'guide_application'
@@ -209,6 +248,48 @@ $$;
 revoke all on function public.admin_decide_guide_application(uuid, text, text) from public;
 revoke all on function public.admin_decide_guide_application(uuid, text, text) from anon;
 grant execute on function public.admin_decide_guide_application(uuid, text, text) to authenticated;
+
+-- 1d. Role sync. Grants 'student_guide' only when a row moves from
+--     'Approved — Agreement Required' to 'Active Student Guide' (what the existing
+--     accept RPC does), and revokes it if the row later leaves that status.
+--     It fires on UPDATE only and requires the previous status to be the
+--     agreement step, so a row cannot jump from 'Pending Review' to active or be
+--     inserted as active and pick up the role. It never touches admin_roles.
+create or replace function public.sync_student_guide_role()
+returns trigger
+language plpgsql
+security definer
+set search_path = public
+as $$
+begin
+  if new.student_id is null then
+    return new;
+  end if;
+
+  if new.status = 'Active Student Guide'
+     and old.status = 'Approved — Agreement Required' then
+    insert into public.user_roles (user_id, role, granted_by)
+    values (new.student_id, 'student_guide', new.decided_by)
+    on conflict (user_id, role) do nothing;
+  elsif old.status = 'Active Student Guide'
+        and new.status is distinct from old.status then
+    delete from public.user_roles
+    where user_id = new.student_id and role = 'student_guide';
+  end if;
+
+  return new;
+end;
+$$;
+
+revoke all on function public.sync_student_guide_role() from public;
+revoke all on function public.sync_student_guide_role() from anon;
+revoke all on function public.sync_student_guide_role() from authenticated;
+
+drop trigger if exists student_guide_applications_sync_role on public.student_guide_applications;
+create trigger student_guide_applications_sync_role
+  after update of status on public.student_guide_applications
+  for each row
+  execute function public.sync_student_guide_role();
 
 
 -- =============================================================================
