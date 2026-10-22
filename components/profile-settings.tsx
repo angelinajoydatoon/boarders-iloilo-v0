@@ -1,0 +1,8 @@
+'use client'
+
+import { FormEvent } from 'react'
+import { UNIVERSITIES } from '@/lib/universities'
+
+export function ProfileSettings({ email, name, university, setName, setUniversity, onSubmit }: { email: string; name: string; university: string; setName: (value: string) => void; setUniversity: (value: string) => void; onSubmit: (event: FormEvent<HTMLFormElement>) => void }) {
+  return <form onSubmit={onSubmit} className="grid gap-5 rounded-3xl border border-slate-200 bg-white p-5 shadow-sm sm:p-6"><div><h2 className="text-xl font-bold text-[#102b4e]">Profile details</h2><p className="mt-1 text-sm text-slate-500">Choose your university to personalize homepage recommendations.</p></div><label className="text-sm font-bold text-[#102b4e]">Full name<input value={name} onChange={(event) => setName(event.target.value)} className="mt-2 w-full rounded-xl border border-slate-200 px-3 py-3 font-normal outline-none focus:border-amber-400 focus:ring-2 focus:ring-amber-100" /></label><label className="text-sm font-bold text-[#102b4e]">Email address<input value={email} readOnly className="mt-2 w-full rounded-xl border border-slate-200 bg-slate-50 px-3 py-3 font-normal text-slate-500" /></label><label className="text-sm font-bold text-[#102b4e]">University<select value={university} onChange={(event) => setUniversity(event.target.value)} className="mt-2 max-h-56 w-full rounded-xl border border-slate-200 bg-white px-3 py-3 font-normal outline-none focus:border-amber-400 focus:ring-2 focus:ring-amber-100">{UNIVERSITIES.map((item) => <option key={item}>{item}</option>)}</select></label><button type="submit" className="rounded-xl bg-[#102b4e] px-4 py-3 font-bold text-white transition hover:bg-[#1b416b]">Save profile</button></form>
+}
