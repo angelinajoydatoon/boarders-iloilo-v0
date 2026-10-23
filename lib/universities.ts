@@ -6,7 +6,6 @@ export const UNIVERSITIES = [
   'University of San Agustin (USA)',
   'Central Philippine University (CPU)',
   'University of the Philippines Visayas (UPV)',
-  'Iloilo State University of Fisheries Science and Technology (ISUFST)',
   'St. Paul University Iloilo (SPUI)',
   'John B. Lacson Foundation Maritime University (JBLFMU)',
   'Western Institute of Technology (WIT)',
