@@ -112,6 +112,7 @@ export function BoardersApp({ view = 'home' }: { view?: 'home' | 'explore' | 'us
       viewing_mode: mode,
       payment_method: payment,
       fee: viewingFees[mode],
+      status: 'Pending',
     })
     if (error) {
       setAuthNotice('We could not save your request. Please try again.')
