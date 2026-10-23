@@ -73,6 +73,7 @@ export function AdminPortal() {
       guidesResult.error && `Guide applications: ${guidesResult.error.message}`,
     ].filter(Boolean)
     if (loadErrors.length) setError(`Some admin records could not be loaded. ${loadErrors.join(' ')}`)
+    else setError('')
     setRequests((requestsResult.data ?? []) as RequestRow[])
     setRequestHistory((historyResult.data ?? []) as RequestRow[])
     setPropertyContacts(Object.fromEntries(((propertiesResult.data ?? []) as PropertyContact[]).map((property) => [property.id, property])))
