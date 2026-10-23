@@ -125,7 +125,7 @@ export function BoardersApp({ view = 'home' }: { view?: 'home' | 'explore' | 'us
   return <main className="min-h-screen min-w-0 bg-[#f7f8fa] pb-[calc(4rem+env(safe-area-inset-bottom))] text-[#11243d] md:pb-0">
     <header className="border-b border-slate-200 bg-white/95 backdrop-blur">
       <div className="mx-auto flex h-18 max-w-7xl items-center justify-between px-5 py-4 lg:px-8">
-        <a href="#top" className="flex items-center gap-2.5 font-bold tracking-tight" aria-label="Boarders Iloilo home"><span className="grid size-9 place-items-center rounded-xl bg-[#102b4e] text-amber-300"><House /></span><span className="text-lg">Boarders <span className="text-amber-500">Iloilo</span></span></a>
+        <a href="#top" className="flex items-center gap-2.5 font-bold tracking-tight" aria-label="Boarders Iloilo home"><img src="/logo.png" alt="" className="size-9 rounded-xl object-contain sm:size-10" /><span className="text-lg">Boarders <span className="text-amber-500">Iloilo</span></span></a>
         <nav aria-label="Primary navigation" className="hidden items-center gap-2 text-sm font-semibold md:flex">{navItems.map((item) => <a key={item.href} href={item.href} aria-current={pathname === item.href ? 'page' : undefined} className={`flex items-center gap-2 rounded-full px-4 py-2 transition ${pathname === item.href ? 'bg-amber-100 text-[#102b4e]' : 'text-slate-600 hover:bg-slate-100 hover:text-[#102b4e]'}`}>{item.icon}<span>{item.label}</span></a>)}</nav>
         <span className="size-10 md:hidden" aria-hidden="true" />
         
