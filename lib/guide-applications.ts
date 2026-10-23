@@ -17,13 +17,13 @@ export const GUIDE_BASE_COLUMNS = 'id, full_name, email, school, service_area, a
 export const GUIDE_DECISION_COLUMNS = `${GUIDE_BASE_COLUMNS}, decided_by, decided_by_email, decided_at, decision_reason`
 
 export function isPendingGuide(status: string) {
-  return status.trim().toLowerCase() === 'pending review'
+  return status.trim().toLowerCase() === 'pending'
 }
 
 export function guideStatusTone(status: string): 'pending' | 'approved' | 'rejected' {
   const normalized = status.trim().toLowerCase()
-  if (normalized.startsWith('approved') || normalized === 'active student guide') return 'approved'
-  if (normalized === 'rejected' || normalized === 'declined') return 'rejected'
+  if (normalized === 'agreement required' || normalized === 'active guide') return 'approved'
+  if (normalized === 'rejected') return 'rejected'
   return 'pending'
 }
 

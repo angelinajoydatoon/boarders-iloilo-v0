@@ -75,7 +75,9 @@ export function AdminGuideCard({ item, busy, leaving, error, onDecide }: {
 
       {!pending && (
         <div className="mt-5 w-full text-sm font-semibold text-slate-600">
-          {tone === 'rejected' ? 'Rejected' : 'Approved'} by {item.decided_by_email ?? item.decided_by ?? 'an administrator'} on {formatDecisionDate(item.decided_at)}
+          {tone === 'rejected' ? 'Rejected' : 'Approved'} by {item.decided_by_email ?? item.decided_by ?? (tone === 'rejected' ? 'the applicant' : 'an administrator')} on {formatDecisionDate(item.decided_at)}
+          {item.status.trim().toLowerCase() === 'agreement required' ? ' · Waiting for the student to accept the agreement' : ''}
+          {item.status.trim().toLowerCase() === 'active guide' ? ' · Agreement accepted' : ''}
           {tone === 'rejected' && item.decision_reason ? ` · Reason: ${item.decision_reason}` : ''}
         </div>
       )}
