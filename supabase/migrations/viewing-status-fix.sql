@@ -11,13 +11,16 @@
 -- "create or replace" fails if the existing function has a different return type or
 -- different parameter names. If it does, tell me and I will adjust before you run it.
 --
+-- Verified against the app code and live read-only column probes (anon key, limit=0):
+--   * viewing_requests has id, student_id, preferred_date, preferred_time, status,
+--     decided_at, decided_by, decided_by_email, cancellation_reason. There is no user_id.
+--   * The student form inserts student_id, preferred_date, preferred_time and status 'Pending'.
+--
 -- Assumptions that were not verified against the live database:
 --   * viewing_requests.id is uuid and the existing function signature is
 --     (request_id uuid, decision text, note text), matching the app's rpc() call.
---   * viewing_requests has decided_at, decided_by, decided_by_email, cancellation_reason
---     (the admin loader already selects them).
---   * notifications.kind accepts 'viewing_request' and audit_events accepts the
---     columns used below.
+--   * notifications.kind accepts 'viewing_request' (nothing else in the app writes that
+--     kind) and audit_events accepts the columns used below.
 
 create or replace function public.admin_decide_viewing_request(
   request_id uuid,
