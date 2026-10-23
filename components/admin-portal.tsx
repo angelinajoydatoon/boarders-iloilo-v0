@@ -3,7 +3,6 @@
 import { useEffect, useMemo, useState } from 'react'
 import { AlertTriangle, CalendarClock, Check, Clipboard, FileCheck2, LogIn, MessageCircle, Phone, RefreshCw, Search, ShieldAlert, UserRound, X } from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
-import { decideGuideApplication } from '@/app/admin/actions'
 import { AdminGuideCard } from '@/components/admin-guide-card'
 import { GUIDE_BASE_COLUMNS, GUIDE_DECISION_COLUMNS, isPendingGuide, type GuideRow } from '@/lib/guide-applications'
 
@@ -107,19 +106,18 @@ export function AdminPortal() {
     setNotice('')
     setGuideErrors((current) => { const { [id]: _removed, ...rest } = current; return rest })
     setGuideBusyId(id)
-    const result = await decideGuideApplication(id, decision, reason)
+    const { error: decisionError } = await supabase.rpc('admin_decide_guide_application', {
+      p_application_id: id,
+      p_decision: decision,
+      p_reason: reason?.trim() || null,
+    })
     setGuideBusyId(null)
-    if (!result.ok) {
-      setGuideErrors((current) => ({ ...current, [id]: result.error }))
+    if (decisionError) {
+      setGuideErrors((current) => ({ ...current, [id]: decisionError.message }))
       return false
     }
-    setLeavingGuideIds((current) => [...current, id])
-    setGuides((current) => current.map((item) => item.id === id ? { ...item, status: result.status, decided_at: result.decidedAt, decided_by_email: result.decidedByEmail, decision_reason: decision === 'rejected' ? reason?.trim() ?? null : null } : item))
     setNotice(`Application ${decision}. The student was notified.`)
-    window.setTimeout(() => {
-      setLeavingGuideIds((current) => current.filter((leavingId) => leavingId !== id))
-      void load()
-    }, 600)
+    await load()
     return true
   }
 
