@@ -65,7 +65,15 @@ export function AdminPortal() {
       supabase.from('complaints').select('id, property_id, category, description, status, created_at, student_id').order('created_at', { ascending: false }),
       loadGuides(),
     ])
-    if (requestsResult.error || historyResult.error || propertiesResult.error || complaintsResult.error || guidesResult.error) setError('Some admin records could not be loaded.')
+    const loadErrors = [
+      requestsResult.error && `Pending requests: ${requestsResult.error.message}`,
+      historyResult.error && `Request history: ${historyResult.error.message}`,
+      propertiesResult.error && `Properties: ${propertiesResult.error.message}`,
+      complaintsResult.error && `Complaints: ${complaintsResult.error.message}`,
+      guidesResult.error && `Guide applications: ${guidesResult.error.message}`,
+    ].filter(Boolean)
+    if (loadErrors.length) setError(`Some admin records could not be loaded. ${loadErrors.join(' ')}`)
+    else setError('')
     setRequests((requestsResult.data ?? []) as RequestRow[])
     setRequestHistory((historyResult.data ?? []) as RequestRow[])
     setPropertyContacts(Object.fromEntries(((propertiesResult.data ?? []) as PropertyContact[]).map((property) => [property.id, property])))
@@ -97,7 +105,7 @@ export function AdminPortal() {
     if (status === 'Rejected' && note === null) return
     const decision = status === 'Approved' ? 'approved' : 'rejected'
     const { error: updateError } = await supabase.rpc('admin_decide_viewing_request', { request_id: id, decision, note })
-    if (updateError) return setError('Request update was not saved. It remains in Pending.')
+    if (updateError) return setError(`Request update was not saved. It remains in Pending. ${updateError.message}`)
     setRequests((current) => current.filter((item) => item.id !== id))
     setRequestHistory((current) => [{ ...(requests.find((item) => item.id === id) as RequestRow), status, decided_at: new Date().toISOString() }, ...current].slice(0, 20))
     setNotice(`Request marked ${status}. The student was notified.`)
