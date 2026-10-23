@@ -145,8 +145,14 @@ export function BoardersApp({ view = 'home' }: { view?: 'home' | 'explore' | 'us
       status: 'Pending',
     })
     if (error) {
-      const developmentDetails = process.env.NODE_ENV === 'development' ? ` (${error.message}${error.code ? ` [${error.code}]` : ''})` : ''
-      setAuthNotice(`We could not save your request${developmentDetails}. Please try again.`)
+      const developmentDetails = process.env.NODE_ENV === 'development' ? ` (${error.message}${error.code ? ` [${error.code}]` : ''}${error.details ? ` Details: ${error.details}` : ''}${error.hint ? ` Hint: ${error.hint}` : ''})` : ''
+      const productionMessage: Record<string, string> = {
+        '23503': "This listing isn't set up for viewing requests yet. Please contact us or try another listing.",
+        '22P02': "We couldn't save your request because of a listing data problem. Please contact us.",
+        '42501': 'You need to be logged in as a student to request a viewing. Please log in and try again.',
+        '23514': "Some of your selections aren't accepted. Please review the form and try again.",
+      }
+      setAuthNotice(process.env.NODE_ENV === 'development' ? `We could not save your request${developmentDetails}. Please try again.` : productionMessage[error.code ?? ''] ?? 'We could not save your request. Please try again.')
       return
     }
     setAuthNotice('Viewing request submitted. Track its status from your Profile page.')
