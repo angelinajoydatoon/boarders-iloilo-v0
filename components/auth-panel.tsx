@@ -20,7 +20,7 @@ type Review = { id: string; property_id: string; rating: number; body: string | 
 type Complaint = { id: string; property_id: string | null; category: string; description: string; status: string; created_at: string }
 type Payment = { id: string; request_id: string; amount: number; method: string; status: string; transaction_reference: string | null }
 
-const propertyNames: Record<string, string> = { '1': 'Luna House', '2': 'The Study Nook', '3': 'Amber Residences', '4': 'Casa Verde Boarding' }
+const propertyNames: Record<string, string> = { '1': 'Luna House', '2': 'The Study Nook', '3': 'Amber Residences', '4': 'Casa Verde Boarding', 'wvsu-ladies-boarding-house': 'WVSU Ladies Boarding House' }
 const label = (id: string | null) => id ? propertyNames[id] ?? `Property ${id}` : 'General report'
 
 export function AuthPanel() {
