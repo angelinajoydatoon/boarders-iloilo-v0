@@ -12,11 +12,6 @@ type RequestRow = { id: string; full_name: string; email: string; mobile: string
 type PropertyContact = { id: string; title: string; details: Record<string, unknown> | null }
 type ComplaintRow = { id: string; property_id: string | null; category: string; description: string; status: string; created_at: string; student_id: string }
 
-const adminRequestDiagnostic = (event: string, details: Record<string, unknown> = {}) => {
-  if (process.env.NODE_ENV === 'production') return
-  console.log('[v0][admin-request-diagnostic]', event, details)
-}
-
 const tabs: { id: Tab; label: string; icon: typeof CalendarClock }[] = [
   { id: 'requests', label: 'Viewing requests', icon: CalendarClock },
   { id: 'reviews', label: 'Property reviews', icon: FileCheck2 },
@@ -63,7 +58,6 @@ export function AdminPortal() {
     const { data: admin } = await supabase.rpc('is_admin')
     setIsAdmin(Boolean(admin))
     if (!admin) { setLoading(false); return }
-    adminRequestDiagnostic('request queries started', { queries: ['pending', 'history'] })
     const [requestsResult, historyResult, propertiesResult, complaintsResult, guidesResult] = await Promise.all([
       supabase.from('viewing_requests').select('id, full_name, email, mobile, property_id, preferred_date, preferred_time, viewing_mode, fee, status, notes, payment_method, decided_at, decided_by, decided_by_email, cancellation_reason').ilike('status', 'pending').order('created_at', { ascending: false }),
       supabase.from('viewing_requests').select('id, full_name, email, mobile, property_id, preferred_date, preferred_time, viewing_mode, fee, status, notes, payment_method, decided_at, decided_by, decided_by_email, cancellation_reason').or('status.ilike.approved,status.ilike.rejected').order('decided_at', { ascending: false }).limit(20),
@@ -71,19 +65,6 @@ export function AdminPortal() {
       supabase.from('complaints').select('id, property_id, category, description, status, created_at, student_id').order('created_at', { ascending: false }),
       loadGuides(),
     ])
-    const requestDiagnostics = [
-      { name: 'pending', result: requestsResult },
-      { name: 'history', result: historyResult },
-    ]
-    requestDiagnostics.forEach(({ name, result }) => {
-      const errorDetails = result.error
-        ? { code: result.error.code ?? 'unknown', message: result.error.message.slice(0, 240) }
-        : {}
-      adminRequestDiagnostic(`${name} request query ${result.error ? 'failed' : 'succeeded'}`, {
-        rowCount: result.data?.length ?? 0,
-        ...errorDetails,
-      })
-    })
     const loadErrors = [
       requestsResult.error && `Pending requests: ${requestsResult.error.message}`,
       historyResult.error && `Request history: ${historyResult.error.message}`,
@@ -98,12 +79,6 @@ export function AdminPortal() {
     setPropertyContacts(Object.fromEntries(((propertiesResult.data ?? []) as PropertyContact[]).map((property) => [property.id, property])))
     setComplaints((complaintsResult.data ?? []) as ComplaintRow[])
     setGuides((guidesResult.data ?? []) as GuideRow[])
-    const pendingRowCount = requestsResult.data?.length ?? 0
-    adminRequestDiagnostic('request loading completed', {
-      loading: false,
-      emptyStateSelected: !requestsResult.error && pendingRowCount === 0,
-      pendingRowCount,
-    })
     setLoading(false)
   }
 
