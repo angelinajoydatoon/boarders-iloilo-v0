@@ -1,3 +1,4 @@
+-- NOT APPLIED. Columns (id, title, details) and the id type are UNVERIFIED against the live schema. Do not run until confirmed.
 -- Add the code-backed listing required by viewing_requests.property_id.
 -- Approval required before executing this migration.
 insert into public.properties (id, title, details)
