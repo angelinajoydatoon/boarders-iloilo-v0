@@ -40,9 +40,15 @@ export function AdminPortal() {
   const [error, setError] = useState('')
 
   async function loadGuides() {
-    const extended = await supabase.from('student_guide_applications').select(GUIDE_DECISION_COLUMNS).order('created_at', { ascending: false })
-    if (!extended.error) return extended
-    return supabase.from('student_guide_applications').select(GUIDE_BASE_COLUMNS).order('created_at', { ascending: false })
+    const fetchGuides = (columns: string) => Promise.all([
+      supabase.from('student_guide_applications').select(columns).ilike('status', 'pending').order('created_at', { ascending: false }),
+      supabase.from('student_guide_applications').select(columns).or('status.ilike.agreement required,status.ilike.active guide,status.ilike.rejected').order('created_at', { ascending: false }),
+    ])
+    let [pendingResult, historyResult] = await fetchGuides(GUIDE_DECISION_COLUMNS)
+    if (pendingResult.error || historyResult.error) [pendingResult, historyResult] = await fetchGuides(GUIDE_BASE_COLUMNS)
+    const rows = [...(pendingResult.data ?? []), ...(historyResult.data ?? [])] as unknown as GuideRow[]
+    rows.sort((a, b) => b.created_at.localeCompare(a.created_at))
+    return { data: rows, error: pendingResult.error ?? historyResult.error }
   }
 
   async function load() {

@@ -50,7 +50,7 @@ export async function decideGuideApplication(
   const result = (data ?? {}) as { status?: string; decided_at?: string; decided_by_email?: string | null }
   return {
     ok: true,
-    status: result.status ?? (decision === 'approved' ? 'Approved' : 'Rejected'),
+    status: result.status ?? (decision === 'approved' ? 'Agreement Required' : 'Rejected'),
     decidedAt: result.decided_at ?? new Date().toISOString(),
     decidedByEmail: result.decided_by_email ?? userData.user.email ?? null,
   }
